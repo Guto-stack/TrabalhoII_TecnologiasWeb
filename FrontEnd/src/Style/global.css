@@ -1,23 +1,79 @@
-@import "tailwindcss";
+@import 'tailwindcss';
 
-@theme {
-  --color-background: #141f14;
-  --color-primary: #4a6e3c;
-  --color-lightprimary: #7aaa68;
-  --color-loginbg: #24512e;
-  --color-secondary: #D4621A;
-  --color-text: #e8d5a0; 
-  --animate-gradient: gradientFlow 12s ease infinite;
+:root {
+  --paleo-canvas: #ddeee3;
+  --paleo-header: #324734;
+  --paleo-node: #324734;
+  --paleo-text: #faf5e8;
+  --paleo-accent: #E3B03B;
+  --paleo-border: #8B252C;
+  --paleo-dot: rgba(227, 176, 59, 1);
+}
 
-  @keyframes gradientFlow {
-    0% {
-      background-position: 0% 50%;
-    }
-    50% {
-      background-position: 100% 50%;
-    }
-    100% {
-      background-position: 0% 50%;
-    }
-  }
+@theme inline {
+  --color-canvas: var(--paleo-canvas);
+  --color-header: var(--paleo-header);
+  --color-node: var(--paleo-node);
+  --color-text-main: var(--paleo-text);
+  --color-accent: var(--paleo-accent);
+}
+
+html, body, #root {
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  background-color: var(--paleo-canvas);
+  color: var(--paleo-text);
+  font-family: sans-serif;
+  transition: background-color 0.3s ease;
+}
+
+.dark-theme {
+  --paleo-canvas: #1a1f1c;
+  --paleo-text: #ddeee3;
+  --paleo-dot: rgba(227, 176, 59, 0.25);
+}
+
+.paleo-controls {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  filter: drop-shadow(0 4px 6px rgba(0,0,0,0.3));
+  display: flex;
+  flex-direction: column;
+}
+
+.react-flow__controls-button {
+  width: 38px !important; 
+  height: 38px !important;
+  background-color: var(--paleo-node) !important;
+  fill: var(--paleo-accent) !important;
+  color: var(--paleo-accent) !important;
+  border: none !important;
+  display: flex !important;
+  justify-content: center !important;
+  align-items: center !important;
+  transition: all 0.2s ease;
+}
+
+.react-flow__controls-button:first-child {
+  border-top-left-radius: 8px !important;
+  border-top-right-radius: 8px !important;
+}
+
+.react-flow__controls-button:nth-child(3) {
+  border-bottom-left-radius: 8px !important;
+  border-bottom-right-radius: 8px !important;
+  margin-bottom: 5px !important;
+}
+
+.react-flow__controls-button:nth-child(4) {
+  border-radius: 8px !important;
+}
+
+.react-flow__controls-button:hover {
+  background-color: #2a3c2c !important;
+  fill: var(--paleo-text) !important;
+  color: var(--paleo-text) !important;
 }
