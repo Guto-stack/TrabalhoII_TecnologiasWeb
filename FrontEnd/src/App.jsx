@@ -10,12 +10,8 @@ import 'reactflow/dist/style.css';
 const allData = {
   nodes: [
     { id: '1', label: 'Dinosauria', parentId: null, x: 500, y: 50 },
-    
-    // Filhos de Dinosauria (Nível 2)
     { id: '2', label: 'Saurischia', parentId: '1', x: 300, y: 180 },
     { id: '3', label: 'Ornithischia', parentId: '1', x: 700, y: 180 },
-    
-    // Filhos de Saurischia (Nível 3)
     { id: '4', label: 'Theropoda', parentId: '2', x: 150, y: 310 },
     { id: '5', label: 'Sauropodomorpha', parentId: '2', x: 450, y: 310 },
   ]

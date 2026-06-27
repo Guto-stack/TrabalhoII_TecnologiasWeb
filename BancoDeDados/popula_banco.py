@@ -1,161 +1,217 @@
-#type: ignore
 import os
 import csv
-import requests
 import psycopg2
 from dotenv import load_dotenv
 
 load_dotenv()
 
-print("Conectando ao Postgres com a nova estrutura taxonômica...")
-try:
-    conexao = psycopg2.connect(
-        host="127.0.0.1",
-        port=5433,                      
-        database="paleotree_db",
-        user="postgres",
-        password=os.getenv("SENHA_WINDOWS")
-    )
-    cursor = conexao.cursor()
-    print("Conexão estabelecida com sucesso!")
-except Exception as e:
-    print(f"Erro ao conectar ao banco de dados: {e}")
-    exit()
-
-def obter_ou_criar_grupo_taxonomico(linha_csv):
-    """ Classifica dinamicamente o dinossauro em um grande clado evolutivo """
-    texto_busca = f"{linha_csv.get('behavior_notes', '')} {linha_csv.get('notable_features', '')} {linha_csv.get('meaning', '')}".lower()
+descricoes_clados = {
+    # RAIZ
+    "Dinosauria": "Um clado diversificado de répteis arcossauros que dominaram a Terra durante a Era Mesozoica.",
     
-    # Mapeamento de palavras-chave para grandes grupos biológicos
-    if "theropod" in texto_busca or "carnivore" in linha_csv.get("diet", "").lower():
-        nome_grupo = "Theropoda"
-        desc = "Grandes e pequenos predadores ou omnívoros bípedes, caracterizados por ossos ocos e pés com três dedos funcionais."
-    elif "sauropod" in texto_busca or "titanosaur" in texto_busca or "long neck" in texto_busca:
-        nome_grupo = "Sauropodomorpha"
-        desc = "Os gigantes pescoçudos da Era Mesozoica. Herbívoros quadrúpedes com corpos massivos e caudas longas."
-    elif "ceratops" in texto_busca or "horned" in texto_busca or "frill" in texto_busca:
-        nome_grupo = "Ceratopsia"
-        desc = "Dinossauros marginocefálios herbívoros com chifres faciais proeminentes e escudos ósseos no pescoço."
-    elif "ankylosaur" in texto_busca or "armored" in texto_busca or "clubbed tail" in texto_busca:
-        nome_grupo = "Ankylosauria"
-        desc = "Dinossauros blindados cobertos por placas dérmicas osteodermes, muitos possuindo uma clava óssea na ponta da cauda."
-    elif "stegosaur" in texto_busca or "plates on back" in texto_busca or "spiked tail" in texto_busca:
-        nome_grupo = "Stegosauria"
-        desc = "Herbívoros quadrúpedes distintos pelas fileiras verticais de placas ou espinhos ósseos ao longo do dorso e cauda."
-    elif "ornithopod" in texto_busca or "duck-billed" in texto_busca or "hadrosaur" in texto_busca or "iguanodont" in texto_busca:
-        nome_grupo = "Ornithopoda"
-        desc = "Herbívoros bípedes ou quadrúpedes facultativos, incluindo os dinossauros de bico de pato com mandíbulas de mastigação complexas."
-    else:
-        nome_grupo = "Ornithischia de transição"
-        desc = "Linhagens basais ou outras ramificações de dinossauros herbívoros que não se encaixam perfeitamente nos clados principais."
+    # ORDENS
+    "Ornithischia": "Dinossauros com 'quadril de pássaro'. Grupo herbívoro diversificado, muitos com armaduras, chifres ou bicos complexos.",
+    "Saurischia": "Dinossauros com 'quadril de lagarto'. Inclui os gigantes pescoçudos (saurópodes) e todos os terópodes carnívoros.",
+    
+    # SUBORDENS
+    "Marginocephalia": "Herbívoros caracterizados por uma franja óssea ou espessamento na parte de trás do crânio (inclui ceratopsídeos e paquicefalossauros).",
+    "Ornithopoda": "Herbívoros bípedes ou quadrúpedes facultativos, famosos por seus bicos e complexo sistema de mastigação.",
+    "Sauropodomorpha": "Herbívoros de pescoço longo e cabeça pequena. Evoluíram para se tornarem os maiores animais terrestres de todos os tempos.",
+    "Theropoda": "Predadores predominantemente bípedes, caracterizados por ossos ocos e três dedos funcionais. Linhagem ancestral das aves.",
+    "Thyreophora": "Dinossauros encouraçados. Possuíam placas ósseas, espinhos ou densos escudos dérmicos espalhados pelo corpo para defesa.",
+    
+    # FAMÍLIAS
+    "Abelisauridae": "Predadores do hemisfério sul caracterizados por focinhos curtos e robustos, ornamentações cranianas e braços extremamente atrofiados.",
+    "Allosauridae": "Grandes predadores de topo do Jurássico, com cristas ósseas sobre os olhos e mandíbulas projetadas para infligir ferimentos profundos.",
+    "Alvarezsauridae": "Pequenos e ágeis terópodes emplumados com patas dianteiras curtas e uma única garra forte, adaptada possivelmente para cavar cupinzeiros.",
+    "Ankylosauridae": "Dinossauros pesadamente blindados com espessas osteodermas e uma clava óssea massiva na ponta da cauda para defesa.",
+    "Brachiosauridae": "Gigantescos saurópodes com as pernas dianteiras mais longas que as traseiras, proporcionando uma postura semelhante à das girafas.",
+    "Camarasauridae": "Saurópodes robustos de pescoço mais curto, com crânios em forma de caixa e dentes grandes em formato de colher.",
+    "Carcharodontosauridae": "Alguns dos maiores predadores terrestres já existentes, com dentes finos e serrilhados semelhantes aos de tubarões para rasgar carne.",
+    "Ceratopsidae": "Grandes herbívoros quadrúpedes conhecidos por seus elaborados escudos ósseos no pescoço (gorgueiras) e chifres faciais proeminentes.",
+    "Ceratosauridae": "Terópodes primitivos que possuíam chifres no focinho e, em muitos casos, escudos ósseos (osteodermas) ao longo das costas.",
+    "Cetiosauridae": "Uma família de saurópodes basais e primitivos, com vértebras sólidas e muito pesadas em comparação com os grupos avançados posteriores.",
+    "Coelophysidae": "Predadores ágeis, esguios e velozes do Triássico e início do Jurássico, cujos fósseis sugerem caça e vivência em bandos.",
+    "Compsognathidae": "Pequenos dinossauros carnívoros, leves e rápidos, que se alimentavam de insetos e pequenos vertebrados.",
+    "Dicraeosauridae": "Saurópodes de pescoço relativamente curto com espinhas neurais altas e bifurcadas nas costas, formando uma 'vela' em algumas espécies.",
+    "Dilophosauridae": "Terópodes basais notáveis por possuírem cristas duplas, finas e paralelas no topo do crânio.",
+    "Diplodocidae": "Saurópodes extremamente alongados, com pescoços muito compridos, crânios estreitos e caudas em formato de chicote.",
+    "Dromaeosauridae": "Raptores ágeis e inteligentes, cobertos por penas e equipados com uma garra letal em forma de foice em cada pé.",
+    "Dryosauridae": "Herbívoros ornitópodes de pequeno a médio porte, rápidos corredores de floresta com grandes olhos e pernas longas.",
+    "Guaibasauridae": "Grupo primitivo sul-americano de transição, com características que misturam as de terópodes e sauropodomorfos basais.",
+    "Hadrosauridae": "Conhecidos como dinossauros 'bico de pato', formavam vastas manadas herbívoras e possuíam cristas cranianas para vocalização.",
+    "Herrerasauridae": "Entre os dinossauros mais antigos conhecidos; predadores bípedes basais com mandíbulas de dupla articulação.",
+    "Heterodontosauridae": "Família de ornitísquios basais com dentição complexa e diferenciada, incluindo dentes semelhantes a caninos na frente da mandíbula.",
+    "Huayangosauridae": "Estegossauros primitivos que possuíam crânios mais curtos e altos e ainda retinham dentes na frente da mandíbula superior.",
+    "Hypsilophodontidae": "Pequenos, ágeis e velozes dinossauros herbívoros bípedes que prosperaram fugindo da megafauna predatória.",
+    "Iguanodontidae": "Grandes ornitópodes herbívoros capazes de andar em duas ou quatro patas, com polegares em forma de espinho afiado para defesa.",
+    "Mamenchisauridae": "Saurópodes asiáticos notórios por possuírem pescoços extraordinariamente longos, chegando a compor mais da metade de todo o corpo.",
+    "Massospondylidae": "Prosaurópodes (sauropodomorfos basais) comuns no início do Jurássico, frequentemente desenvolvendo garras curvas nos polegares.",
+    "Megalosauridae": "Grandes terópodes predadores que dominaram as ilhas e litorais da Europa durante o Jurássico, com braços muito fortes.",
+    "Metriacanthosauridae": "Predadores do Jurássico e Cretáceo Inferior com espinhas neurais elevadas que formavam corcovas musculares nas costas.",
+    "Nemegtosauridae": "Titanossauros asiáticos tardios conhecidos principalmente por seus crânios bem preservados e dentes em formato de pino.",
+    "Nodosauridae": "Dinossauros blindados cobertos por placas ósseas e grandes espinhos projetados lateralmente, mas que não possuíam a clava na cauda.",
+    "Ornithomimidae": "Dinossauros parecidos com avestruzes, bípedes extremamente velozes, com bicos sem dentes e dietas predominantemente onívoras.",
+    "Oviraptoridae": "Dinossauros exóticos emplumados, com bicos desdentados muito fortes em formato de papagaio e, frequentemente, altas cristas no crânio.",
+    "Pachycephalosauridae": "Herbívoros bípedes famosos pelos crânios extremamente espessos e abobadados, usados em disputas de cabeçadas e exibições intraespecíficas.",
+    "Piatnitzkysauridae": "Terópodes basais sul-americanos do Jurássico Médio, representando os ancestrais primitivos da linhagem dos alossauros e megalossauros.",
+    "Pisanosauridae": "Representantes da base da árvore dos ornitísquios, compreendendo pequenos e primitivos herbívoros do Triássico.",
+    "Plateosauridae": "Sauropodomorfos primitivos grandes e corpulentos, os primeiros herbívoros na história terrestre a atingir tamanhos gigantescos.",
+    "Rebbachisauridae": "Titanossauriformes com focinhos largos e dentes em bateria, muitos apresentando espinhas neurais muito elevadas nas costas.",
+    "Riojasauridae": "Sauropodomorfos robustos e massivos, cuja constituição física pesada forçou o retorno à locomoção exclusivamente quadrúpede.",
+    "Saltasauridae": "Titanossauros avançados que revolucionaram a paleontologia ao comprovar a presença de osteodermas ósseas (blindagem) na pele de saurópodes.",
+    "Scelidosauridae": "Dinossauros primitivos encouraçados do Jurássico Inferior, representando formas transicionais ancestrais de todos os anquilossauros.",
+    "Spinosauridae": "Predadores especializados de focinhos longos, com dietas baseadas em peixes e grandes presas aquáticas, muitos possuindo velas nas costas.",
+    "Stegosauridae": "Família clássica de estegossauros com pescoços curtos, cabeças minúsculas e placas ósseas dorsais altamente vascularizadas.",
+    "Therizinosauridae": "Bizarros dinossauros herbívoros com barrigas proeminentes e braços longos terminados nas maiores garras em forma de foice já documentadas.",
+    "Titanosauridae": "O último e mais diversificado grupo de saurópodes, espalhado por todos os continentes e abrigando os maiores animais terrestres que já existiram.",
+    "Troodontidae": "Dinossauros semelhantes a aves com grandes cérebros e enormes globos oculares, sugerindo alta inteligência, agilidade e hábitos noturnos.",
+    "Tyrannosauridae": "Superpredadores do Cretáceo Superior com cabeças massivas, braços atrofiados de dois dedos e as mordidas mais letais e esmagadoras da história terrestre.",
+    "Vulcanodontidae": "Uma das primeiras e mais basais famílias de saurópodes verdadeiros, marcando a transição morfológica completa para o andar sobre quatro patas em pilares."
+}
 
+def obter_ou_criar_clado(cursor, nome, nivel, id_ancestral):
+    if not nome or nome == "":
+        return None
+        
+    cursor.execute("SELECT id_clado FROM clado WHERE nome_clado = %s;", (nome,))
+    resultado = cursor.fetchone()
+    if resultado:
+        return resultado[0]
+        
+    descricao = descricoes_clados.get(nome, f"Clado do grupo {nome}.")
+    
     cursor.execute("""
-        INSERT INTO grupo_taxonomico (nome_grupo, descricao_anatomica) 
-        VALUES (%s, %s) 
-        ON CONFLICT (nome_grupo) DO UPDATE SET nome_grupo = EXCLUDED.nome_grupo
-        RETURNING id_grupo;
-    """, (nome_grupo, desc))
+        INSERT INTO clado (nome_clado, nivel_taxonomico, descricao, id_ancestral) 
+        VALUES (%s, %s, %s, %s) RETURNING id_clado;
+    """, (nome, nivel, descricao, id_ancestral))
+    
     return cursor.fetchone()[0]
 
-def obter_ou_criar_periodo(nome_periodo):
-    if not nome_periodo or nome_periodo.strip() == "":
-        nome_periodo = "Desconhecido"
-    nome_periodo = nome_periodo.strip().capitalize()
-    
-    cursor.execute("SELECT id_periodo FROM periodo_geologico WHERE nome_periodo = %s;", (nome_periodo,))
-    res = cursor.fetchone()
-    if res:
-        return res[0]
-        
-    inicio_ma, fim_ma = None, None
+def popular_banco():
+    conexao = None
     try:
-        url = f"https://paleobiodb.org/data1.2/intervals/list.json?name={nome_periodo}"
-        resposta = requests.get(url, timeout=10)
-        if resposta.status_code == 200:
-            records = resposta.json().get("records", [])
-            if records:
-                inicio_ma = records[0].get("eax") or records[0].get("age")
-                fim_ma = records[0].get("lax") or records[0].get("age")
-    except Exception:
-        pass
-        
-    cursor.execute("""
-        INSERT INTO periodo_geologico (nome_periodo, inicio_ma, fim_ma) 
-        VALUES (%s, %s, %s) 
-        RETURNING id_periodo;
-    """, (nome_periodo, inicio_ma, fim_ma))
-    return cursor.fetchone()[0]
+        conexao = psycopg2.connect(
+            host="127.0.0.1",
+            port=5432,                  
+            database="paleotree_db",
+            user="postgres",
+            password=os.getenv("SENHA_BANCO")
+        )
+        cursor = conexao.cursor()
+        print("Conectado ao banco 'paleotree_db'. Iniciando Povoamento...\n")
 
-def importar_csv_taxonomico(caminho_csv):
-    print(f"\n[CSV] A iniciar a carga limpa com suporte a Grupos Taxonómicos: {caminho_csv}...")
-    if not os.path.exists(caminho_csv):
-        print("Erro: Arquivo CSV não encontrado.")
-        return
+        periodos = {
+            "Triássico": {"inicio": 252.0, "fim": 201.3},
+            "Jurássico": {"inicio": 201.3, "fim": 145.0},
+            "Cretáceo": {"inicio": 145.0, "fim": 66.0}
+        }
+        ids_periodos = {}
+        for nome, idades in periodos.items():
+            cursor.execute("""
+                INSERT INTO periodo_geologico (nome_periodo, inicio_ma, fim_ma) 
+                VALUES (%s, %s, %s)
+                ON CONFLICT (nome_periodo) DO UPDATE SET inicio_ma = EXCLUDED.inicio_ma
+                RETURNING id_periodo;
+            """, (nome, idades["inicio"], idades["fim"]))
+            ids_periodos[nome] = cursor.fetchone()[0]
+            
+        id_raiz_dinosauria = obter_ou_criar_clado(cursor, "Dinosauria", "Superordem", None)
+        print("Raiz 'Dinosauria' ancorada com sucesso.")
 
-    with open(caminho_csv, mode='r', encoding='utf-8') as arquivo:
-        leitor = csv.DictReader(arquivo)
-        contador = 0
-        
-        for linha in leitor:
-            nome_cientifico = linha.get("scientific_name")
-            if not nome_cientifico:
+        arquivos_csv = {
+            "Triássico": "data/dino_triassico.csv",
+            "Jurássico": "data/dino_jurassico.csv",
+            "Cretáceo": "data/dino_cretaceo.csv"
+        }
+
+        total_especies = 0
+
+        for nome_periodo, arquivo_path in arquivos_csv.items():
+            if not os.path.exists(arquivo_path):
+                print(f"⚠️ Arquivo '{arquivo_path}' não encontrado.")
                 continue
                 
-            nome_popular = linha.get("common_name") or nome_cientifico
-            significado = linha.get("meaning") or "Não informado"
-            continente = linha.get("lived_in") or "Desconhecido"
-            fossil_loc = linha.get("fossil_location") or "Não informado"
-            dieta_texto = linha.get("diet") or "Não catalogada"
-            locomocao = linha.get("locomotion") or "Não catalogada"
-            notas = linha.get("behavior_notes") or ""
-            features = linha.get("notable_features") or ""
-            inteligencia = linha.get("intelligence_level") or "Desconhecido"
-            descoberta = linha.get("first_discovered") or "Não informada"
-            link = linha.get("source_link") or ""
-
-            def tratar_float(valor):
-                try: return float(valor) if valor and valor.strip() else None
-                except: return None
-
-            comprimento = tratar_float(linha.get("length_m"))
-            peso = tratar_float(linha.get("weight_kg"))
-            altura = tratar_float(linha.get("height_m"))
-
-            try:
-                # Resolve os relacionamentos normalizados de 1-para-Muitos
-                id_grupo = obter_ou_criar_grupo_taxonomico(linha)
-                id_periodo = obter_ou_criar_periodo(linha.get("geological_period"))
-
-                # Insere a espécie mapeando a dieta como atributo local
-                cursor.execute("""
-                    INSERT INTO especie_dinossauro (
-                        nome_cientifico, nome_popular, significado_nome, id_periodo, id_grupo, id_ancestral,
-                        continente, fossil_location_csv, dieta, comprimento_m, peso_estimado_kg, altura_m, 
-                        locomotion_api, notas_comportamento, caracteristicas_notaveis, nivel_inteligencia, 
-                        ano_descoberta, link_fonte, url_imagem
-                    )
-                    VALUES (%s, %s, %s, %s, %s, NULL, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, NULL)
-                    ON CONFLICT (nome_cientifico) DO NOTHING
-                    RETURNING id_especie;
-                """, (nome_cientifico, nome_popular, significado, id_periodo, id_grupo, 
-                      continente, fossil_loc, dieta_texto, comprimento, peso, altura, 
-                      locomocao, notas, features, inteligencia, descoberta, link))
+            id_periodo_atual = ids_periodos[nome_periodo]
+            
+            with open(arquivo_path, mode='r', encoding='utf-8-sig') as f:
+                leitor = csv.DictReader(f)
                 
-                contador += 1
-                if contador % 100 == 0:
-                    conexao.commit()
-                    print(f"[BD] {contador} espécies catalogadas com taxonomia...")
+                for linha in leitor:
+                    # Resolve a Árvore Hierárquica conectada a Dinosauria
+                    ordem_nome = linha.get('Ordem', '').strip()
+                    subordem_nome = linha.get('Subordem', '').strip()
+                    familia_nome = linha.get('Família', '').strip()
+                    
+                    # Ordem -> aponta para Dinosauria
+                    id_ordem = obter_ou_criar_clado(cursor, ordem_nome, "Ordem", id_raiz_dinosauria)
+                    
+                    # Subordem -> aponta para Ordem
+                    id_subordem = obter_ou_criar_clado(cursor, subordem_nome, "Subordem", id_ordem)
+                    
+                    # Família -> aponta para Subordem
+                    id_familia = obter_ou_criar_clado(cursor, familia_nome, "Família", id_subordem)
+                    
+                    # O card do dinossauro aponta para o menor clado disponível
+                    id_clado_final = id_familia if id_familia else id_subordem
 
-            except Exception as e:
-                print(f"Erro no processamento de {nome_cientifico}: {e}")
-                conexao.rollback()
-                
+                    def trata_float(val):
+                        try: return float(val) if val and val.strip() else None
+                        except: return None
+
+                    # Insere Espécie
+                    cursor.execute("""
+                        INSERT INTO especie_dinossauro (
+                            nome_cientifico, nome_popular, id_periodo, id_clado, dieta, 
+                            altura_m, comprimento_m, peso_estimado_kg, descricao, 
+                            ano_descoberta, url_imagem
+                        ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                        ON CONFLICT (nome_cientifico) DO NOTHING
+                        RETURNING id_especie;
+                    """, (
+                        linha.get('Nome Científico', '').strip(),
+                        linha.get('Nome Popular', '').strip(),
+                        id_periodo_atual,
+                        id_clado_final,
+                        linha.get('dieta', '').strip(),
+                        trata_float(linha.get('altura_m')), 
+                        trata_float(linha.get('comprimento_m')), 
+                        trata_float(linha.get('peso_estimado_kg')),
+                        linha.get('descricao', '').strip(),
+                        linha.get('ano_descoberta', '').strip(),
+                        linha.get('imagem', '').strip()
+                    ))
+                    
+                    resultado_especie = cursor.fetchone()
+                    if resultado_especie:
+                        total_especies += 1
+                        id_especie = resultado_especie[0]
+                        
+                        # Insere o Fóssil
+                        cursor.execute("""
+                            INSERT INTO fossil (id_especie, localidade_exata, latitude, longitude)
+                            VALUES (%s, %s, %s, %s);
+                        """, (
+                            id_especie,
+                            linha.get('localizacao_fossil', '').strip(),
+                            trata_float(linha.get('latitude')), 
+                            trata_float(linha.get('longitude'))
+                        ))
+
+            print(f"Arquivo CSV do {nome_periodo} processado.")
+
         conexao.commit()
-        print(f"\n[Sucesso] Etapa 1 Concluída! {contador} espécies distribuídas nas novas tabelas.")
+        print(f"\nA árvore genealógica de Dinosauria foi montada com sucesso!!.")
 
-try:
-    importar_csv_taxonomico("data/dinoDatasetCSV.csv")
-finally:
-    cursor.close()
-    conexao.close()
-    print("Conexão encerrada.")
+    except Exception as e:
+        print(f"Erro durante a execução: {e}")
+        if conexao:
+            conexao.rollback()
+            
+    finally:
+        if conexao:
+            cursor.close()
+            conexao.close()
+
+if __name__ == "__main__":
+    popular_banco()
