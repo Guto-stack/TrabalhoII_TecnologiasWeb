@@ -3,6 +3,9 @@ import { Info, ChevronRight } from 'lucide-react';
 import { cn } from '../lib/utils';
 
 export function TreeCard({ data }) {
+  const isEspecie = !!data.nomeCientifico;
+  const isNomeComposto = data.label.includes(' ');
+
   return (
     <div 
       className={cn(
@@ -14,11 +17,13 @@ export function TreeCard({ data }) {
       <Handle type="target" position={Position.Top} className="opacity-0 w-full h-2" />
       
       <div className="shrink-0 text-accent">
-        <ChevronRight className={cn("w-5 h-5 transition-transform duration-300", data.isExpanded ? "rotate-90" : "rotate-0")} />
+        {!isEspecie && (
+          <ChevronRight className={cn("w-5 h-5 transition-transform duration-300", data.isExpanded ? "rotate-90" : "rotate-0")} />
+        )}
       </div>
 
-      <div className="flex-1 flex flex-col text-left">
-        <span className="text-lg font-bold leading-tight">{data.label}</span>
+      <div className="flex-1 flex flex-col text-left min-w-0">
+        <span className={cn("text-lg font-bold leading-tight w-full block text-balance", isNomeComposto ? "line-clamp-2 wrap-break-words" : "truncate")} title={data.label}>{data.label}</span>
       </div>
 
       <button className="shrink-0 flex items-center justify-center w-7 h-7 bg-accent/20 hover:bg-accent/40 text-accent rounded-md transition-colors cursor-pointer">
