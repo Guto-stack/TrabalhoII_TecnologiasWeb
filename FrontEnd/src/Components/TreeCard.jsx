@@ -26,8 +26,14 @@ export function TreeCard({ data }) {
         <span className={cn("text-lg font-bold leading-tight w-full block text-balance", isNomeComposto ? "line-clamp-2 wrap-break-words" : "truncate")} title={data.label}>{data.label}</span>
       </div>
 
-      <button className="shrink-0 flex items-center justify-center w-7 h-7 bg-accent/20 hover:bg-accent/40 text-accent rounded-md transition-colors cursor-pointer">
-        <Info className="w-4 h-4" />
+      <button onClick={(e) => {
+            e.stopPropagation(); 
+            if (data.onAbrirModal) {
+              data.onAbrirModal(data); }
+          }}
+          className="shrink-0 p-1.5 rounded-full hover:bg-accent/20 text-accent transition-colors"
+          title="Ver detalhes">
+          <Info className="w-5 h-5" />
       </button>
 
       <Handle type="source" position={Position.Bottom} className="opacity-0 w-full h-2" />

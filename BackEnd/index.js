@@ -11,7 +11,7 @@ const fastify = Fastify({
 
 // Registra configs do CORS 
 await fastify.register(cors, {
-    origin: true, //MUDEI AQUI PRA FUNCIONAR NO MEU PC, QLQR COISA SO VOLTAR PRA FRONTEND_URL
+    origin: "*", //MUDEI AQUI PRA FUNCIONAR NO MEU PC, QLQR COISA SO VOLTAR PRA FRONTEND_URL
     methods: ["GET", "POST", "PUT", "DELETE"]
 })
 

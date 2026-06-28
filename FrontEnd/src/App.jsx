@@ -3,6 +3,7 @@ import { cn } from "./lib/utils";
 import { Header } from "./Components/Header";
 import { TreeCard } from "./Components/TreeCard";
 import { InfoPanel } from "./Components/InfoPanel";
+import { InfoModal } from "./Components/InfoModal";
 import { Sun, Moon, Move, Info, Loader2 } from "lucide-react";
 import ReactFlow, { Background, Controls, ControlButton, useNodesState, useEdgesState } from 'reactflow';
 import dagre from "dagre";
@@ -57,6 +58,13 @@ function App() {
   const [activePeriod, setActivePeriod] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
   const [bancoLocal, setBancoLocal] = useState({nodes: [], edges: []});
+  const [modalAberto, setModalAberto] = useState(false);
+  const [dadosModal, setDadosModal] = useState(null);
+
+  const abrirDetalhes = useCallback((dadosDoCard) => {
+        setDadosModal(dadosDoCard);
+        setModalAberto(true);
+    }, []);
 
   const nodeTypes = useMemo(() => ({ customCard: TreeCard }), []);
   
@@ -94,7 +102,8 @@ function App() {
           data: {
             ...rootNode.data,
             label: rootNode.data.nome,
-            isExpanded: false
+            isExpanded: false,
+            onAbrirModal: abrirDetalhes
           }
         }];
 
@@ -173,7 +182,8 @@ function App() {
           data: { 
             ...child.data, 
             label: child.data.nome || child.data.nomeCientifico, 
-            isExpanded: false 
+            isExpanded: false,
+            onAbrirModal: abrirDetalhes 
           }
         }));
 
@@ -274,6 +284,12 @@ function App() {
             className="top-6 right-6"
           />
         </ReactFlow>
+
+        <InfoModal 
+          isOpen={modalAberto} 
+          onClose={() => setModalAberto(false)} 
+          data={dadosModal} 
+        />
       </div>
     </div>
   );
