@@ -3,6 +3,7 @@ import { cn } from "./lib/utils";
 import { Header } from "./Components/Header";
 import { TreeCard } from "./Components/TreeCard";
 import { InfoPanel } from "./Components/InfoPanel";
+import { Estatisticas } from "./Components/Estatisticas";
 import { Sun, Moon, Move, Info, Loader2 } from "lucide-react";
 import ReactFlow, { Background, Controls, ControlButton, useNodesState, useEdgesState } from 'reactflow';
 import dagre from "dagre";
@@ -60,6 +61,7 @@ function App() {
   const [activePeriod, setActivePeriod] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
   const [bancoLocal, setBancoLocal] = useState({nodes: [], edges: []});
+  const [currentTab, setCurrentTab] = useState("arvore");
 
   const nodeTypes = useMemo(() => ({ customCard: TreeCard }), []);
   
@@ -215,71 +217,90 @@ function App() {
 
   return (
     <div className={cn("flex flex-col w-screen h-screen overflow-hidden bg-canvas transition-colors duration-300", isDarkMode ? "dark-theme" : "")}>
-      <Header />
+      <Header currentTab={currentTab} setCurrentTab={setCurrentTab} />
       
-      <div className="flex-1 w-full relative">
-        <div className="absolute top-6 left-6 z-10 flex flex-col gap-3 max-w-64 bg-transparent">
-          <h2 className="text-text-main font-bold text-xs tracking-wider uppercase mb-1 drop-shadow-sm opacity-80 pl-1">
-            Períodos Geológicos
-          </h2>
-          {periodos.map((periodo) => (
-            <button
-              key={periodo.id_periodo}
-              onClick={() => alterarPeriodo(periodo.id_periodo)}
-              className={cn(
-                "px-5 py-3 rounded-xl font-bold text-sm text-left transition-all duration-300 shadow-md border cursor-pointer",
-                activePeriod === periodo.id_periodo
-                  ? "bg-header text-text-main border-accent scale-102 ring-2 ring-accent/30"
-                  : "bg-node text-text-main/80 border-accent/20 hover:bg-node/90 hover:text-text-main hover:scale-102"
-              )}
-            >
-              {periodo.nome_periodo}
-              <span className="block text-xxs font-normal opacity-60 mt-0.5">
-                {periodo.inicio_ma} Ma a {periodo.fim_ma} Ma
-              </span>
-            </button>
-          ))}
-        </div>
+      <div className="flex-1 w-full max-h-[calc(100vh-88px)] relative">
+        {currentTab === "arvore" ? (
+          /* ================= TELA: ÁRVORE EVOLUTIVA (ORIGINAL) ================= */
+          <>
+            <div className="absolute top-6 left-6 z-10 flex flex-col gap-3 max-w-64 bg-transparent">
+              <h2 className="text-text-main font-bold text-xs tracking-wider uppercase mb-1 drop-shadow-sm opacity-80 pl-1">
+                Períodos Geológicos
+              </h2>
+              {periodos.map((periodo) => (
+                <button
+                  key={periodo.id_periodo}
+                  onClick={() => alterarPeriodo(periodo.id_periodo)}
+                  className={cn(
+                    "px-5 py-3 rounded-xl font-bold text-sm text-left transition-all duration-300 shadow-md border cursor-pointer",
+                    activePeriod === periodo.id_periodo
+                      ? "bg-header text-text-main border-accent scale-102 ring-2 ring-accent/30"
+                      : "bg-node text-text-main/80 border-accent/20 hover:bg-node/90 hover:text-text-main hover:scale-102"
+                  )}
+                >
+                  {periodo.nome_periodo}
+                  <span className="block text-xxs font-normal opacity-60 mt-0.5">
+                    {periodo.inicio_ma} Ma a {periodo.fim_ma} Ma
+                  </span>
+                </button>
+              ))}
+            </div>
 
-        {isLoading && (
-          <div className="absolute inset-0 z-20 flex items-center justify-center bg-canvas/40 backdrop-blur-xs">
-            <div className="flex flex-col items-center gap-2 text-header bg-node/10 p-4 rounded-xl border border-accent/20">
-              <Loader2 className="w-8 h-8 animate-spin text-accent" />
-              <span className="text-xs font-bold uppercase tracking-widest text-text-main/70">Atualizando Linhagem...</span>
+            {isLoading && (
+              <div className="absolute inset-0 z-20 flex items-center justify-center bg-canvas/40 backdrop-blur-xs">
+                <div className="flex flex-col items-center gap-2 text-header bg-node/10 p-4 rounded-xl border border-accent/20">
+                  <Loader2 className="w-8 h-8 animate-spin text-accent" />
+                  <span className="text-xs font-bold uppercase tracking-widest text-text-main/70">Atualizando Linhagem...</span>
+                </div>
+              </div>
+            )}
+
+            <ReactFlow 
+                nodes={nodes} 
+                edges={edges}
+                onNodesChange={onNodesChange}
+                onEdgesChange={onEdgesChange}
+                onNodeClick={handleNodeClick}
+                nodeTypes={nodeTypes}
+                nodesDraggable={false}
+                fitView
+            >
+              <Background color="var(--paleo-dot)" gap={20} size={1.5} />
+
+              <Controls 
+                showInteractive={false}
+                showZoom={true}
+                showFitView={true}
+                className="paleo-controls"
+              >
+                <ControlButton onClick={alternarTema} title="Toggle Theme">
+                  {isDarkMode ? <Sun className="w-8 h-8" /> : <Moon className="w-8 h-8" />}
+                </ControlButton>
+              </Controls>
+
+              <InfoPanel 
+                icon={Move} 
+                title="Controles" 
+                items={panelItems} 
+                className="top-6 right-6"
+              />
+            </ReactFlow>
+          </>
+        ) : (
+          /* ================= TELA: ESTATÍSTICAS E RELATÓRIOS ================= */
+          <div className="w-full h-full overflow-y-auto p-8 bg-canvas text-text-main">
+            <div className="max-w-5xl mx-auto flex flex-col gap-6 pb-12"> {/* Adicionado um pb-12 para dar respiro no fim da página */}
+              <div>
+                <p className="text-sm text-text-main/60 mt-1">
+                  Relatórios analíticos cruzando os dados de períodos geológicos, clados e fósseis.
+                </p>
+              </div>
+
+              <Estatisticas />
+              
             </div>
           </div>
         )}
-
-        <ReactFlow 
-            nodes={nodes} 
-            edges={edges}
-            onNodesChange={onNodesChange}
-            onEdgesChange={onEdgesChange}
-            onNodeClick={handleNodeClick}
-            nodeTypes={nodeTypes}
-            nodesDraggable={false}
-            fitView
-        >
-          <Background color="var(--paleo-dot)" gap={20} size={1.5} />
-
-          <Controls 
-            showInteractive={false}
-            showZoom={true}
-            showFitView={true}
-            className="paleo-controls"
-          >
-            <ControlButton onClick={alternarTema} title="Toggle Theme">
-              {isDarkMode ? <Sun className="w-8 h-8" /> : <Moon className="w-8 h-8" />}
-            </ControlButton>
-          </Controls>
-
-          <InfoPanel 
-            icon={Move} 
-            title="Controles" 
-            items={panelItems} 
-            className="top-6 right-6"
-          />
-        </ReactFlow>
       </div>
     </div>
   );

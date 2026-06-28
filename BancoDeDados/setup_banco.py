@@ -13,7 +13,7 @@ def criar_tabelas():
     try:
         conexao = psycopg2.connect(
             host="127.0.0.1",
-            port=5432,                  
+            port=5433,                  
             database="paleotree_db",
             user="postgres",
             password=os.getenv("SENHA_BANCO")
