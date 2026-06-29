@@ -16,6 +16,7 @@
   --color-node: var(--paleo-node);
   --color-text-main: var(--paleo-text);
   --color-accent: var(--paleo-accent);
+  --color-wine: var(--paleo-border);
 }
 
 html, body, #root {

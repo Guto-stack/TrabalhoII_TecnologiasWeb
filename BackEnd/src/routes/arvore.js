@@ -43,12 +43,13 @@ export async function arvoreRoutes(fastify, options){
                         nomePopular: especie.nome_popular,
                         dieta: especie.dieta,
                         altura: especie.altura_m,
-                        comrimento: especie.comprimento_m,
+                        comprimento: especie.comprimento_m,
                         peso: especie.peso_estimado_kg,
                         descricao: especie.descricao,
                         descoberta: especie.ano_descoberta,
                         imagem: especie.url_imagem,
-                        idEspecie: especie.id_especie
+                        idEspecie: especie.id_especie,
+                        localidade_exata: especie.fossil?.[0]?.localidade_exata || null
                     }
                 })
 

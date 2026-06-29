@@ -31,7 +31,7 @@ export function TreeCard({ data }) {
             if (data.onAbrirModal) {
               data.onAbrirModal(data); }
           }}
-          className="shrink-0 p-1.5 rounded-full hover:bg-accent/20 text-accent transition-colors"
+          className="shrink-0 p-1.5 rounded-md hover:bg-accent/20 text-accent transition-colors"
           title="Ver detalhes">
           <Info className="w-5 h-5" />
       </button>

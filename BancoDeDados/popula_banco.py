@@ -93,13 +93,21 @@ def popular_banco():
     try:
         conexao = psycopg2.connect(
             host="127.0.0.1",
-            port=5433,                  
+            port=5432,                  
             database="paleotree_db",
             user="postgres",
             password=os.getenv("SENHA_BANCO")
         )
         cursor = conexao.cursor()
         print("Conectado ao banco 'paleotree_db'. Iniciando Povoamento...\n")
+
+        print("Limpando os dados antigos...")
+        cursor.execute("""
+            TRUNCATE TABLE fossil, especie_dinossauro, clado, periodo_geologico 
+            RESTART IDENTITY CASCADE;
+        """)
+        conexao.commit()
+        print("Banco limpo com sucesso!\n")
 
         periodos = {
             "Triássico": {"inicio": 252.0, "fim": 201.3},
@@ -129,7 +137,7 @@ def popular_banco():
 
         for nome_periodo, arquivo_path in arquivos_csv.items():
             if not os.path.exists(arquivo_path):
-                print(f"⚠️ Arquivo '{arquivo_path}' não encontrado.")
+                print(f"Arquivo '{arquivo_path}' não encontrado.")
                 continue
                 
             id_periodo_atual = ids_periodos[nome_periodo]
