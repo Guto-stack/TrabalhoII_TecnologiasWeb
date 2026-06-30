@@ -146,6 +146,10 @@ export function Estatisticas({ isDarkMode }){
                         <div className="flex justify-between"><span>Comprimento:</span><span className="font-bold text-text-main">{d.comprimento} m</span></div>
                         <div className="flex justify-between"><span>Altura:</span><span className="font-bold text-text-main">{d.altura ? `${d.altura} m` : "—"}</span></div>
                         <div className="flex justify-between"><span>Peso Estimado:</span><span className="font-bold text-accent">{d.peso ? `${d.peso.toLocaleString()} kg` : "—"}</span></div>
+                        <div className="flex justify-between mt-1 pt-1 border-t border-accent/5">
+                          <span>Fósseis Catalogados:</span>
+                          <span className="font-bold text-accent">{d.totalFosseis}</span>
+                        </div>
                       </div>
                     </div>
                   ))}
